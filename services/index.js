@@ -45,9 +45,12 @@ fastify.get('/getEventsByUserId/:id', async (request, reply) => {
 });
 
 fastify.listen({ port: 3000 }, (err) => {
-    listenMock();
     if (err) {
       fastify.log.error(err);
       process.exit();
     }
+
+    listenMock().catch((mockErr) => {
+      fastify.log.error(mockErr);
+    });
 });

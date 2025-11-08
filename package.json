@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node services"
+    "test": "mocha",
+    "start:local": "env NODE_ENV=local node services",
+    "start:development": "env NODE_ENV=development node services",
+    "start:production": "env NODE_ENV=production node services",
+    "lint": "eslint ."
   },
   "author": "",
   "license": "ISC",
@@ -12,5 +15,10 @@
   "dependencies": {
     "fastify": "^4.28.0",
     "msw": "^2.7.3"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.3",
+    "eslint": "8.15",
+    "mocha": "^11.7.5"
   }
 }
