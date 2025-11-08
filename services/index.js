@@ -77,17 +77,21 @@ fastify.get('/getEventsByUserId/:id', async (request, reply) => {
     const userData = await user.json();
     const userEvents = userData.events;
     const eventArray = [];
-    
+    // it would be faster to call getEvents, filter by userId, and then return that.
+    // But the mock has a 500ms delay on the call, so it seems the task needs to work around the 500ms delay
     for (let i = 0; i < userEvents.length; i++) {
-      const event = await fetch('http://event.com/getEventById/' + userEvents[i]);
-      const eventData = await event.json();
-      eventArray.push(eventData);
+      const event = fetch('http://event.com/getEventById/' + userEvents[i]);
+      eventArray.push(event);
     }
+    const eventResponse = await Promise.all(eventArray);
+    // cuts the response time in half doing it this way
+    const eventJSONData = await Promise.all(eventResponse.map((res) => res.json()))
     logger.info(`${getEnvPrefix()} Sending response for GET /getEventsByUserId`, {
       statusCode: 200,
-      payload: eventArray
+      payload: eventJSONData
     });
-    reply.send(eventArray);
+    // Could cut the response time even further theoretically be implementing a cache.
+    reply.send(eventJSONData);
   } catch (error) {
     logger.error(`${getEnvPrefix()} Failed to fetch events for user`, error);
     reply.code(500).send({ error: 'Failed to fetch events for user' });

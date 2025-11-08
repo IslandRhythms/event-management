@@ -49,7 +49,7 @@ const eventStore = {
       userId: 2,
       details: 'This is the first event'
     },
-    "event-3": {
+    "event-3": { // mistake or intentional?
       id: 1,
       name: 'Event 1',
       userId: 1,
