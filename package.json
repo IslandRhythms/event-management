@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "env NODE_ENV=test mocha",
     "start:local": "env NODE_ENV=local node services",
     "start:development": "env NODE_ENV=development node services",
     "start:production": "env NODE_ENV=production node services",
