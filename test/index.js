@@ -5,26 +5,9 @@ const { describe, it, before, after, afterEach } = require('mocha');
 const listenMock = require('../mock-server');
 const { fastifyRoutes } = require('../services/index');
 
-const downFailureThreshold = 3;
-const probeIntervalMs = 5000;
-const requestTimeoutMs = 1500;
+
 const retryAttempts = 3;
 
-const createFailureResponse = () => ({
-  ok: false,
-  status: 503,
-  json: async () => ({
-    success: false,
-    error: 'Service temporarily unavailable',
-    message: 'Event API is experiencing high load',
-  }),
-});
-
-const createSuccessResponse = () => ({
-  ok: true,
-  status: 200,
-  json: async () => ({ success: true }),
-});
 
 describe('Service routes', function() {
   before(async function() {
