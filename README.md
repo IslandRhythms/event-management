@@ -3,6 +3,7 @@
 * [Configuration](#configuration)
 * [Running](#running)
 * [Response Data](#response-data)
+* [Troubleshooting](#troubleshooting)
 
 
 
@@ -78,3 +79,13 @@ POST /addEvent
   "message": "string | undefined"
 }
 ```
+
+## Troubleshooting
+
+### addEvent route keeps returning 503
+
+- When the upstream Event API times out or responds with errors, our service retries the `addEvent` request up to three times with a short back-off. If all retries fail, the route responds with a 503 status and marks the upstream as unhealthy.
+- While unhealthy, subsequent `POST /addEvent` calls are skipped for a cooldown window and immediately return 503 along with a `retryAfterMs` hint. This prevents users from waiting on requests we already know will fail.
+- A background probe automatically fires after the cooldown expires. It sends a lightweight health-check payload through the same `addEvent` path so we can detect recovery without waiting for user traffic.
+- Each request is wrapped in an `AbortController` with a built-in timeout (1.5 seconds in production, shorter in tests). Without this guard, slow upstream calls would hang indefinitely and tie up Fastify workers.
+- If the service appears stuck in the unhealthy state, inspect logs for repeated probe failures and verify the mock or real upstream service is responding. Bringing the upstream back online allows the probe to succeed and automatically restores normal traffic flow.
