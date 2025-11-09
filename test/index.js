@@ -1,8 +1,30 @@
 'use strict';
 const assert = require('assert');
-const { describe, it, before, after } = require('mocha');
+const sinon = require('sinon');
+const { describe, it, before, after, afterEach } = require('mocha');
 const listenMock = require('../mock-server');
 const { fastifyRoutes } = require('../services/index');
+
+const downFailureThreshold = 3;
+const probeIntervalMs = 5000;
+const requestTimeoutMs = 1500;
+const retryAttempts = 3;
+
+const createFailureResponse = () => ({
+  ok: false,
+  status: 503,
+  json: async () => ({
+    success: false,
+    error: 'Service temporarily unavailable',
+    message: 'Event API is experiencing high load',
+  }),
+});
+
+const createSuccessResponse = () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({ success: true }),
+});
 
 describe('Service routes', function() {
   before(async function() {
@@ -12,6 +34,10 @@ describe('Service routes', function() {
 
   after(async function() {
     await fastifyRoutes.close();
+  });
+
+  afterEach(function() {
+    sinon.restore();
   });
 
   it('GET /health returns ok', async function() {
@@ -78,5 +104,43 @@ describe('Service routes', function() {
     assert.strictEqual(response.statusCode, 200);
     const payload = JSON.parse(response.body);
     assert.strictEqual(payload.success, true);
+  });
+
+  it('POST /addEvent returns 503 after repeated timeouts', async function() {
+    const fetchStub = sinon.stub(global, 'fetch').callsFake((url, options = {}) => {
+      return new Promise((resolve, reject) => {
+        const signal = options.signal;
+        if (signal) {
+          const onAbort = () => {
+            const abortError = new Error('Request aborted');
+            abortError.name = 'AbortError';
+            reject(abortError);
+          };
+          if (signal.aborted) {
+            onAbort();
+            return;
+          }
+          signal.addEventListener('abort', onAbort, { once: true });
+        }
+      });
+    });
+
+    const response = await fastifyRoutes.inject({
+      method: 'POST',
+      url: '/addEvent',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      payload: {
+        userId: 42,
+        name: 'Timeout Event',
+        details: 'This request is expected to time out',
+      }
+    });
+
+    assert.strictEqual(response.statusCode, 503);
+    const payload = JSON.parse(response.body);
+    assert.strictEqual(payload.error, 'Event service temporarily unavailable');
+    assert.strictEqual(fetchStub.callCount, retryAttempts);
   });
 });
