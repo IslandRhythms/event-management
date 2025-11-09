@@ -1,24 +1,24 @@
 let requestCount = 0;
 const userStore = {
   users:{
-    "1" : {
+    '1' : {
       userName: 'user1',
       id: 1,
       email: 'hello@gmail.com',
-      events: ['event-1', 'event-3']
+      events: ['event-1', 'event-3'],
     },
-    "2" : {
+    '2' : {
       userName: 'user2',
       id: 2,
       email: 'hello2@gmail.com',
-      events: ['event-2']
+      events: ['event-2'],
     },
-    "3" : {
+    '3' : {
       userName: 'user3',
       id: 2,
       email: 'hello3@gmail.com',
-      events: ['event-4']
-    }
+      events: ['event-4'],
+    },
   },
   addUser(user) {
     this.users[user.id] = user;
@@ -32,35 +32,35 @@ const userStore = {
   },
   addEventTouUser(userId, eventId) {
     this.users[userId].events.push(eventId);
-  }
+  },
 };
 
 const eventStore = {
   events: {
-    "event-1": {
+    'event-1': {
       id: 1,
       name: 'Event 1',
       userId: 1,
-      details: 'This is the first event'
+      details: 'This is the first event',
     },
-    "event-2": {
+    'event-2': {
       id: 1,
       name: 'Event 2',
       userId: 2,
-      details: 'This is the first event'
+      details: 'This is the first event',
     },
-    "event-3": { // mistake or intentional?
+    'event-3': { // mistake or intentional?
       id: 1,
       name: 'Event 1',
       userId: 1,
-      details: 'This is the first event'
+      details: 'This is the first event',
     },
-    "event-4": {
+    'event-4': {
       id: 1,
       name: 'Event 4',
       userId: 3,
-      details: 'This is the first event'
-    }
+      details: 'This is the first event',
+    },
   },
   addEvent(event) {
     this.events[event.id] = event;
@@ -71,7 +71,7 @@ const eventStore = {
   },
   getEvents() {
     return Object.values(this.events);
-  }
+  },
 };
 
 let serverInstance = null;
@@ -88,15 +88,15 @@ const ensureServer = async () => {
     http.get('http://event.com/getUsers', () => {
       if (Math.random() < 0.05) {
         return HttpResponse.error(new Error('Server error occurred'));
-      } 
+      }
       return HttpResponse.json(userStore.getUsers());
     }),
-  
-    http.get('http://event.com/getUserById/:id', ({params}) => {
-      return HttpResponse.json(userStore.getUser(params.id))
+
+    http.get('http://event.com/getUserById/:id', ({ params }) => {
+      return HttpResponse.json(userStore.getUser(params.id));
     }),
-    
-    http.post('http://event.com/addEvent', async ({request}) => {
+
+    http.post('http://event.com/addEvent', async ({ request }) => {
       requestCount++;
       // Simulate a successful response for the first 5 requests
       if (requestCount <= 5 || requestCount === 0) {
@@ -104,9 +104,9 @@ const ensureServer = async () => {
         eventStore.addEvent(requestBody);
         userStore.addEventTouUser(requestBody.userId, requestBody.id);
         return HttpResponse.json({
-          success: true
+          success: true,
         });
-      } 
+      }
       // Then fail for the next 10 requests
       if (requestCount >= 15) {
         requestCount = 0;
@@ -115,18 +115,18 @@ const ensureServer = async () => {
       return HttpResponse.json({
         success: false,
         error: 'Service temporarily unavailable',
-        message: 'Event API is experiencing high load'
-      },{
+        message: 'Event API is experiencing high load',
+      }, {
         status: 503,
       });
     }),
     http.get('http://event.com/getEvents', () => {
       if (Math.random() < 0.05) {
         return HttpResponse.error(new Error('Server error occurred'));
-      } 
+      }
       return HttpResponse.json(eventStore.getEvents());
     }),
-    http.get('http://event.com/getEventById/:id', async ({params}) => {
+    http.get('http://event.com/getEventById/:id', async ({ params }) => {
       await delay(500);
       return HttpResponse.json(eventStore.getEvent(params.id));
     }),

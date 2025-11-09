@@ -50,10 +50,12 @@ const run = async () => {
     await timeRequest();
     await addEvents(5);
     await timeRequest();
-  } catch (err) {
+  }
+  catch (err) {
     console.error('Error while testing route slowness', err);
     process.exitCode = 1;
-  } finally {
+  }
+  finally {
     await fastifyRoutes.close();
   }
 };

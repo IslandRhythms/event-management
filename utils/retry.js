@@ -12,7 +12,8 @@ module.exports = async function retry(fn, attempts = 3, delayMs = 100, onRetry =
     try {
       attempt += 1;
       return await fn(attempt);
-    } catch (error) {
+    }
+    catch (error) {
       if (attempt >= attempts) {
         throw error;
       }

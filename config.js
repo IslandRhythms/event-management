@@ -12,6 +12,6 @@ console.log('NODE_ENV =', env);
 
 if (!['development', 'production'].includes(process.env.NODE_ENV)) {
   dotenv.config({
-    path: path.resolve(__dirname, `.env.${env.toLocaleLowerCase()}`)
+    path: path.resolve(__dirname, `.env.${env.toLocaleLowerCase()}`),
   });
 }

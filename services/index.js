@@ -57,14 +57,16 @@ const runBackgroundProbe = async () => {
     logger.info(`${getEnvPrefix()} Background addEvent probe succeeded`, {
       payload: { userId: payload.userId, name: payload.name },
     });
-  } catch (error) {
+  }
+  catch (error) {
     logger.warn(`${getEnvPrefix()} Background addEvent probe failed`, {
       status: error.status,
       code: error.code,
     });
     downDetector.isHealthy = false;
     downDetector.nextProbeAt = Date.now() + probeIntervalMs;
-  } finally {
+  }
+  finally {
     scheduler.isRunning = false;
     if (!downDetector.isHealthy) {
       scheduleBackgroundProbe();
@@ -102,9 +104,9 @@ const performAddEventRequest = async (body) => {
       method: 'POST',
       body: JSON.stringify({
         id: new Date().getTime(),
-        ...body
+        ...body,
       }),
-      signal: controller.signal
+      signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
@@ -112,10 +114,11 @@ const performAddEventRequest = async (body) => {
     let data;
     try {
       data = await resp.json();
-    } catch (error) {
+    }
+    catch (error) {
       logger.warn(`${getEnvPrefix()} Unable to parse addEvent response`, {
         status: resp.status,
-        error: error.message
+        error: error.message,
       });
       data = undefined;
     }
@@ -128,7 +131,8 @@ const performAddEventRequest = async (body) => {
     }
 
     return data;
-  } catch (error) {
+  }
+  catch (error) {
     if (timedOut || error.name === 'AbortError') {
       const timeoutError = new Error('Event API request timed out');
       timeoutError.status = 503;
@@ -136,27 +140,28 @@ const performAddEventRequest = async (body) => {
       throw timeoutError;
     }
     throw error;
-  } finally {
+  }
+  finally {
     clearTimeout(timeoutId);
   }
 };
 
 fastify.post('/addEvent', async (request, reply) => {
   logger.info(`${getEnvPrefix()} Received POST /addEvent`, {
-    body: request.body
+    body: request.body,
   });
 
   if (!downDetector.isHealthy && Date.now() < downDetector.nextProbeAt) {
     const retryAfter = Math.max(downDetector.nextProbeAt - Date.now(), 0);
     logger.warn(`${getEnvPrefix()} Event API marked down, skipping request`, {
-      retryAfterMs: retryAfter
+      retryAfterMs: retryAfter,
     });
     return reply
       .code(503)
       .send({
         error: 'Event service temporarily unavailable',
         message: 'Please retry after the cooldown period',
-        retryAfterMs: retryAfter
+        retryAfterMs: retryAfter,
       });
   }
 
@@ -169,17 +174,18 @@ fastify.post('/addEvent', async (request, reply) => {
         logger.warn(`${getEnvPrefix()} Retry addEvent attempt failed`, {
           attempt,
           status: error.status,
-          payload: error.payload
+          payload: error.payload,
         });
-      }
+      },
     );
     resetHealth();
     logger.info(`${getEnvPrefix()} Sending response for POST /addEvent`, {
       statusCode: 200,
-      payload: data
+      payload: data,
     });
     reply.send(data);
-  } catch (error) {
+  }
+  catch (error) {
     logger.error(`${getEnvPrefix()} Failed to add event`, error);
     downDetector.failureCount += 1;
 
@@ -195,7 +201,7 @@ fastify.post('/addEvent', async (request, reply) => {
       .send({
         error: status === 503 ? 'Event service temporarily unavailable' : 'Failed to add event',
         message: error.payload?.message || undefined,
-        status
+        status,
       });
   }
 });
@@ -203,36 +209,38 @@ fastify.post('/addEvent', async (request, reply) => {
 fastify.get('/getUsers', async (request, reply) => {
   logger.info(`${getEnvPrefix()} Received GET /getUsers`, {
     params: request.params,
-    query: request.query
+    query: request.query,
   });
   try {
     const resp = await fetch('http://event.com/getUsers');
     const data = await resp.json();
     logger.info(`${getEnvPrefix()} Sending response for GET /getUsers`, {
       statusCode: 200,
-      payload: data
+      payload: data,
     });
-    reply.send(data); 
-  } catch (error) {
+    reply.send(data);
+  }
+  catch (error) {
     logger.error(`${getEnvPrefix()} Failed to fetch users`, error);
     reply.code(500).send({ error: 'Failed to fetch users' });
   }
 });
 
-fastify.get('/getEvents', async (request, reply) => {  
+fastify.get('/getEvents', async (request, reply) => {
   logger.info(`${getEnvPrefix()} Received GET /getEvents`, {
     params: request.params,
-    query: request.query
+    query: request.query,
   });
   try {
     const resp = await fetch('http://event.com/getEvents');
     const data = await resp.json();
     logger.info(`${getEnvPrefix()} Sending response for GET /getEvents`, {
       statusCode: 200,
-      payload: data
+      payload: data,
     });
     reply.send(data);
-  } catch (error) {
+  }
+  catch (error) {
     logger.error(`${getEnvPrefix()} Failed to fetch events`, error);
     reply.code(500).send({ error: 'Failed to fetch events' });
   }
@@ -240,7 +248,7 @@ fastify.get('/getEvents', async (request, reply) => {
 
 fastify.get('/getEventsByUserId/:id', async (request, reply) => {
   logger.info(`${getEnvPrefix()} Received GET /getEventsByUserId`, {
-    params: request.params
+    params: request.params,
   });
   try {
     const { id } = request.params;
@@ -256,14 +264,15 @@ fastify.get('/getEventsByUserId/:id', async (request, reply) => {
     }
     const eventResponse = await Promise.all(eventArray);
     // cuts the response time in half doing it this way
-    const eventJSONData = await Promise.all(eventResponse.map((res) => res.json()))
+    const eventJSONData = await Promise.all(eventResponse.map((res) => res.json()));
     logger.info(`${getEnvPrefix()} Sending response for GET /getEventsByUserId`, {
       statusCode: 200,
-      payload: eventJSONData
+      payload: eventJSONData,
     });
     // Could cut the response time even further theoretically be implementing a cache.
     reply.send(eventJSONData);
-  } catch (error) {
+  }
+  catch (error) {
     logger.error(`${getEnvPrefix()} Failed to fetch events for user`, error);
     reply.code(500).send({ error: 'Failed to fetch events for user' });
   }
@@ -272,12 +281,12 @@ fastify.get('/getEventsByUserId/:id', async (request, reply) => {
 fastify.get('/health', async (request, reply) => {
   logger.info(`${getEnvPrefix()} Received GET /health`, {
     params: request.params,
-    query: request.query
+    query: request.query,
   });
   const payload = { status: 'ok' };
   logger.info(`${getEnvPrefix()} Sending response for GET /health`, {
     statusCode: 200,
-    payload
+    payload,
   });
   reply.send(payload);
 });
@@ -289,7 +298,7 @@ if (process.env.NODE_ENV !== 'test') {
       fastify.close();
       process.exit(-1);
     }
-  
+
     listenMock().catch((mockErr) => {
       logger.error(`${getEnvPrefix()} Failed to start mock server`, mockErr);
       fastify.log.error(mockErr);
@@ -299,5 +308,4 @@ if (process.env.NODE_ENV !== 'test') {
 
 
 module.exports = { fastifyRoutes: fastify };
-
 

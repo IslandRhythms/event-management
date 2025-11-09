@@ -43,7 +43,7 @@ describe('Service routes', function() {
   it('GET /health returns ok', async function() {
     const response = await fastifyRoutes.inject({
       method: 'GET',
-      url: '/health'
+      url: '/health',
     });
 
     assert.strictEqual(response.statusCode, 200);
@@ -54,7 +54,7 @@ describe('Service routes', function() {
   it('GET /getUsers returns list of users', async function() {
     const response = await fastifyRoutes.inject({
       method: 'GET',
-      url: '/getUsers'
+      url: '/getUsers',
     });
 
     assert.strictEqual(response.statusCode, 200);
@@ -66,7 +66,7 @@ describe('Service routes', function() {
   it('GET /getEvents returns list of events', async function() {
     const response = await fastifyRoutes.inject({
       method: 'GET',
-      url: '/getEvents'
+      url: '/getEvents',
     });
 
     assert.strictEqual(response.statusCode, 200);
@@ -78,7 +78,7 @@ describe('Service routes', function() {
   it('GET /getEventsByUserId/:id returns events for user', async function() {
     const response = await fastifyRoutes.inject({
       method: 'GET',
-      url: '/getEventsByUserId/1'
+      url: '/getEventsByUserId/1',
     });
 
     assert.strictEqual(response.statusCode, 200);
@@ -92,13 +92,13 @@ describe('Service routes', function() {
       method: 'POST',
       url: '/addEvent',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       payload: {
         userId: 1,
         name: 'Test Event',
-        details: 'Created during tests'
-      }
+        details: 'Created during tests',
+      },
     });
 
     assert.strictEqual(response.statusCode, 200);
@@ -129,13 +129,13 @@ describe('Service routes', function() {
       method: 'POST',
       url: '/addEvent',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       payload: {
         userId: 42,
         name: 'Timeout Event',
         details: 'This request is expected to time out',
-      }
+      },
     });
 
     assert.strictEqual(response.statusCode, 503);

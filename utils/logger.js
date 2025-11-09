@@ -13,17 +13,17 @@ const log = (level, message, payload) => {
   const data = payload || '';
 
   switch (level) {
-    case 'error':
-      console.error(`[ERROR] ${timestamp} - ${message}`, data);
-      break;
-    case 'warn':
-      console.warn(`[WARN] ${timestamp} - ${message}`, data);
-      break;
-    case 'info':
-      console.log(`[INFO] ${timestamp} - ${message}`, data);
-      break;
-    default:
-      console.log(`[DEBUG] ${timestamp} - ${message}`, data);
+  case 'error':
+    console.error(`[ERROR] ${timestamp} - ${message}`, data);
+    break;
+  case 'warn':
+    console.warn(`[WARN] ${timestamp} - ${message}`, data);
+    break;
+  case 'info':
+    console.log(`[INFO] ${timestamp} - ${message}`, data);
+    break;
+  default:
+    console.log(`[DEBUG] ${timestamp} - ${message}`, data);
   }
 };
 
