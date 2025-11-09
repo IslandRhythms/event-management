@@ -13,13 +13,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "fastify": "^4.28.0",
-    "msw": "^2.7.3",
-    "sinon": "^21.0.0"
+    "msw": "^2.7.3"
   },
   "devDependencies": {
-    "dotenv": "^17.2.3",
     "eslint": "8.15",
-    "mocha": "^11.7.5"
+    "mocha": "^11.7.5",
+    "sinon": "^21.0.0"
   }
 }

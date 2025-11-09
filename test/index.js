@@ -3,10 +3,44 @@ const assert = require('assert');
 const sinon = require('sinon');
 const { describe, it, before, after, afterEach } = require('mocha');
 const listenMock = require('../mock-server');
+const retry = require('../utils/retry');
 const { fastifyRoutes } = require('../services/index');
 
 
 const retryAttempts = 3;
+
+describe('retry helper', function() {
+  afterEach(function() {
+    sinon.restore();
+  });
+
+  it('retries failed attempts with exponential backoff and resolves on success', async function() {
+    const delays = [];
+    sinon.stub(global, 'setTimeout').callsFake((fn, ms) => {
+      delays.push(ms);
+      fn();
+      return 0;
+    });
+
+    const expectedError = new Error('temporary failure');
+    const task = sinon.stub();
+    task.onCall(0).rejects(expectedError);
+    task.onCall(1).rejects(expectedError);
+    task.onCall(2).resolves('ok');
+
+    const onRetry = sinon.spy();
+
+    const result = await retry(task, 3, 10, onRetry);
+
+    assert.strictEqual(result, 'ok');
+    assert.strictEqual(task.callCount, 3);
+    assert.strictEqual(onRetry.callCount, 2);
+    assert.strictEqual(onRetry.firstCall.args[0], expectedError);
+    assert.strictEqual(onRetry.firstCall.args[1], 1);
+    assert.strictEqual(onRetry.secondCall.args[1], 2);
+    assert.deepStrictEqual(delays, [20, 40]);
+  });
+});
 
 
 describe('Service routes', function() {
