@@ -9,86 +9,31 @@ const retry = require('../utils/retry');
 const getEnvPrefix = () => `[${process.env.NODE_ENV}]`;
 
 const downFailureThreshold = 3;
-const probeIntervalMs = 5000;
 const retryAttempts = 3;
 const retryDelayMs = isTest ? 20 : 150;
 const requestTimeoutMs = isTest ? 100 : 1500;
+const closedWindow = 30000;
+
+
 
 const downDetector = {
   failureCount: 0,
   isHealthy: true,
-  nextProbeAt: 0,
+  routeClosedAt: null
 };
 
-const scheduler = {
-  timerId: null,
-  isRunning: false,
-};
 
-const defaultProbePayload = () => ({
-  userId: 1,
-  name: 'Scheduler health check event',
-  details: 'Automatically generated to verify addEvent availability',
-});
 
-const resetScheduler = () => {
-  if (scheduler.timerId) {
-    clearTimeout(scheduler.timerId);
-    scheduler.timerId = null;
-  }
-};
+
+
 
 const resetHealth = () => {
   downDetector.failureCount = 0;
   downDetector.isHealthy = true;
-  downDetector.nextProbeAt = 0;
-  resetScheduler();
+  routeClosedAt = null;
 };
 
-const runBackgroundProbe = async () => {
-  scheduler.timerId = null;
-  scheduler.isRunning = true;
 
-  const payload = defaultProbePayload();
-
-  try {
-    await performAddEventRequest(payload);
-    resetHealth();
-    logger.info(`${getEnvPrefix()} Background addEvent probe succeeded`, {
-      payload: { userId: payload.userId, name: payload.name },
-    });
-  }
-  catch (error) {
-    logger.warn(`${getEnvPrefix()} Background addEvent probe failed`, {
-      status: error.status,
-      code: error.code,
-    });
-    downDetector.isHealthy = false;
-    downDetector.nextProbeAt = Date.now() + probeIntervalMs;
-  }
-  finally {
-    scheduler.isRunning = false;
-    if (!downDetector.isHealthy) {
-      scheduleBackgroundProbe();
-    }
-  }
-};
-
-const scheduleBackgroundProbe = () => {
-  if (downDetector.isHealthy) {
-    return;
-  }
-
-  if (scheduler.isRunning || scheduler.timerId) {
-    return;
-  }
-
-  const delay = Math.max(downDetector.nextProbeAt - Date.now(), 0);
-  scheduler.timerId = setTimeout(runBackgroundProbe, delay);
-  logger.info(`${getEnvPrefix()} Scheduled background addEvent probe`, {
-    delayMs: delay,
-  });
-};
 
 const performAddEventRequest = async (body) => {
   const controller = new AbortController();
@@ -151,19 +96,30 @@ fastify.post('/addEvent', async (request, reply) => {
     body: request.body,
   });
 
-  if (!downDetector.isHealthy && Date.now() < downDetector.nextProbeAt) {
-    const retryAfter = Math.max(downDetector.nextProbeAt - Date.now(), 0);
-    logger.warn(`${getEnvPrefix()} Event API marked down, skipping request`, {
-      retryAfterMs: retryAfter,
-    });
-    return reply
-      .code(503)
-      .send({
-        error: 'Event service temporarily unavailable',
-        message: 'Please retry after the cooldown period',
-        retryAfterMs: retryAfter,
-      });
+  if (downDetector.routeClosedAt && (new Date().valueOf() < (downDetector.routeClosedAt + closedWindow))) {
+    logger.warn(`${getEnvPrefix()} Event API marked down, skipping request`, {});
+        return reply
+          .code(503)
+          .send({
+            error: 'Event service temporarily unavailable',
+            message: 'Please retry after the cooldown period'
+          });
   }
+
+
+
+  // if (!downDetector.isHealthy) {
+  //   logger.warn(`${getEnvPrefix()} Event API marked down, skipping request`, {
+  //     retryAfterMs: retryAfter,
+  //   });
+  //   return reply
+  //     .code(503)
+  //     .send({
+  //       error: 'Event service temporarily unavailable',
+  //       message: 'Please retry after the cooldown period',
+  //       retryAfterMs: retryAfter,
+  //     });
+  // }
 
   try {
     const data = await retry(
@@ -188,11 +144,9 @@ fastify.post('/addEvent', async (request, reply) => {
   catch (error) {
     logger.error(`${getEnvPrefix()} Failed to add event`, error);
     downDetector.failureCount += 1;
-
     if (downDetector.failureCount >= downFailureThreshold) {
       downDetector.isHealthy = false;
-      downDetector.nextProbeAt = Date.now() + probeIntervalMs;
-      scheduleBackgroundProbe();
+      downDetector.routeClosedAt = new Date().valueOf();
     }
 
     const status = error.status === 503 ? 503 : 500;

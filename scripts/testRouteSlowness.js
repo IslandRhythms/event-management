@@ -48,7 +48,7 @@ const run = async () => {
     await listenMock();
     await fastifyRoutes.ready();
     await timeRequest();
-    await addEvents(5);
+    await addEvents(20);
     await timeRequest();
   }
   catch (err) {
